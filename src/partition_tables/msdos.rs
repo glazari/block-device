@@ -51,6 +51,9 @@ pub struct LBA {
 }
 
 /// Cylinder-Head-Sector (CHS) Addressing
+/// This is mostly obsolete,
+/// most modern tools look only at LBA
+/// in many cases CHS values are set to maximum values
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct CHS {
@@ -61,9 +64,11 @@ pub struct CHS {
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)] // These are the types, even if we don't use them
 pub enum PartitionType {
     Empty = 0x00,
     FAT12 = 0x01,
+    XENIXRoot = 0x02,
     FAT16Small = 0x04,
     Extended = 0x05,
     FAT16Large = 0x06,
@@ -77,6 +82,14 @@ pub enum PartitionType {
     LinuxExtended = 0x85,
     WindowsRecoveryEnv = 0x27,
     HiddenNTFS = 0x17,
+
+    // 0xEE is used for GPT protective partitions
+    GPTProtective = 0xEE,
+
+    // WARNING: There are many more partition types,
+    // And we simply reintepret the u8 value as PartitionType
+    // so if the value is not in this enum,
+    // Rust will just treat it as random value
 }
 
 impl Debug for MBR {
@@ -102,11 +115,8 @@ impl Debug for PartitionEntry {
             0x00 => "Not Bootable",
             _ => &invalid,
         };
-        write!(f, "PartitionEntry")?;
-
-
         f.debug_tuple("PartitionEntry")
-            .field(&format_args!("{bootable} {:?}", self.partition_type))
+            .field(&format_args!("{:?} ({bootable})", self.partition_type))
             .field(&format_args!(
                 "chs[{:?} -> {:?}]",
                 self.starting_chs.val(),
@@ -148,6 +158,14 @@ impl CHS {
         // removing the 2 bits used for cylinder from sector
         let sector = self.sector & 0x3F;
         (cylinder, self.head, sector)
+    }
+    #[allow(dead_code)]
+    pub fn max() -> Self {
+        CHS {
+            head: 0xFF,
+            sector: 0x02,
+            cylinder: 0xFF,
+        }
     }
 }
 

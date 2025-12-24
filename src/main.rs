@@ -1,14 +1,20 @@
 mod filesystems;
 mod partition_tables;
 
-use std::{fs::File, io::Read};
-
 use crate::partition_tables::msdos::MBR;
+use clap::Parser;
+
+#[derive(Parser)]
+/// Reading MBR partition table from a disk
+struct Cli {
+    /// Path to the disk device (e.g., /dev/sda)
+    disk_path: String,
+}
 
 fn main() {
-    let mut buffer = [0u8; 512];
-    let disk = "/dev/sda";
+    let cli = Cli::parse();
 
-    let mbr = MBR::read(disk).expect("Failed to read MBR");
+    let mbr = MBR::read(&cli.disk_path);
+    let mbr = mbr.expect("Failed to read MBR");
     println!("{:#?}", mbr);
 }

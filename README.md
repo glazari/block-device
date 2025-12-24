@@ -115,3 +115,14 @@ Existing filesystem options for mkfs
 ```
 bfs cramfs ext2 ext3 ext4 f2fs fat minix msdos ntfs vfat
 ```
+
+
+Crating a msdos parition with 4 partitions of different types
+
+```bash
+sudo parted /dev/sda mklabel msdos
+sudo parted /dev/sda mkpart primary fat32 1MiB 25%
+sudo parted /dev/sda mkpart primary ext4 25% 50%
+sudo parted /dev/sda mkpart primary ntfs 50% 75%
+sudo parted /dev/sda mkpart primary linux-swap 75% 100%
+```
