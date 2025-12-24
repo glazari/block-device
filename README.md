@@ -81,9 +81,37 @@ Number  Start   End     Size    Type     File system  Flags
 ```
 
 
-zero off a usb device
+zero off a usb device (just the beggning)
 
 ```bash
+# WARNING: deletes data
+sudo dd if=/dev/zero of=/dev/sda bs=1M count=10 status=progress
+# the whole file
+sudo dd if=/dev/zero of=/dev/sda bs=4M status=progress
 ```
 
 
+Re adding a partition table and file system
+```bash
+sudo parted /dev/sda mklabel gpt
+sudo parted /dev/sda mkpart primary 0% 100%
+sudo mkfs.ext4 /dev/sda1 
+```
+
+for fat32 (better use different partition table
+
+```bash
+sudo parted /dev/sda mklabel msdos
+sudo parted /dev/sda mkpart primary fat32 1MiB 100%
+sudo mkfs.vfat -F 32 /dev/sda1
+```
+
+Existing partition table options in parted
+```
+aix, amiga, bsd, dvh, gpt, loop, mac, msdos, pc98, sun
+```
+
+Existing filesystem options for mkfs
+```
+bfs cramfs ext2 ext3 ext4 f2fs fat minix msdos ntfs vfat
+```
