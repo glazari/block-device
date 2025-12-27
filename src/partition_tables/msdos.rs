@@ -11,8 +11,7 @@
 
 use std::fmt::Debug;
 use std::fs::File;
-use std::io::Read;
-use std::io::Result;
+use std::io::{Read, Result};
 use std::mem::size_of;
 
 // Invariants
@@ -85,7 +84,6 @@ pub enum PartitionType {
 
     // 0xEE is used for GPT protective partitions
     GPTProtective = 0xEE,
-
     // WARNING: There are many more partition types,
     // And we simply reintepret the u8 value as PartitionType
     // so if the value is not in this enum,
@@ -123,7 +121,7 @@ impl Debug for PartitionEntry {
                 self.ending_chs.val()
             ))
             .field(&format_args!(
-                "lba[{} -> {}] (size: {})",
+                "lba[{:X} -> {:X}] (size: {:X})",
                 self.starting_lba.val(),
                 self.starting_lba.val() + self.size_in_lba.val(),
                 self.size_in_lba.val()
@@ -172,6 +170,9 @@ impl CHS {
 impl MBR {
     pub fn read(path: &str) -> Result<Self> {
         let mut file = File::open(path)?;
+        Self::read_from_file(&mut file)
+    }
+    pub fn read_from_file(file: &mut File) -> Result<Self> {
         let mut buffer = [0u8; size_of::<MBR>()];
         file.read_exact(&mut buffer)?;
         // Safety: We are reading from a byte array of the correct size
