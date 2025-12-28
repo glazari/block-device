@@ -6,7 +6,7 @@
 //! Supports disks larger than 2 TB.
 
 use std::{
-    fmt::Debug,
+    fmt::{Debug, Write},
     fs::File,
     io::{BufReader, Read, Seek},
 };
@@ -20,8 +20,12 @@ const _: () = assert!(
 );
 
 const SIGNATURE: &str = "EFI PART";
-const SIG_LITTLE_ENDIAN: [u8; 8] = [0x45, 0x46, 0x49, 0x20, 0x50, 0x41, 0x52, 0x54];
-const SIG_BIG_ENDIAN: [u8; 8] = [0x54, 0x52, 0x41, 0x50, 0x20, 0x49, 0x46, 0x45];
+
+#[repr(C)]
+#[derive(Clone)]
+pub struct GPT {
+    pub header: GPTHeader,
+}
 
 #[repr(C)]
 #[derive(Clone)]
@@ -36,13 +40,21 @@ pub struct GPTHeader {
     pub backup_lba: u64,
     pub first_usable_lba: u64,
     pub last_usable_lba: u64,
-    pub disk_guid: [u8; 16],
+    pub disk_guid: Guid,
     pub starting_lba_partition_entries: u64, // usually LBA 2 for compatability
     pub num_partition_entries: u32,
     pub size_of_partition_entry: u32,
     pub crc32_partition_array: u32, // CRC32 of the partition array (in little-endian)
     pub reserved: [u8; 420],        // to make the header 512 bytes
 }
+
+#[repr(C)]
+#[derive(Clone)]
+pub struct Guid([u8; 16]);
+
+#[repr(C)]
+#[derive(Clone)]
+pub struct GPTPartitionEntry {}
 
 impl GPTHeader {
     pub fn read(path: &str) -> std::io::Result<Self> {
@@ -68,11 +80,11 @@ impl GPTHeader {
 
     pub fn assert_valid(&self) {
         // Check signature
+        let sig_bytes = SIGNATURE.as_bytes();
         assert!(
-            self.signature == SIG_LITTLE_ENDIAN || self.signature == SIG_BIG_ENDIAN,
-            "Invalid GPT signature: expected {:?} or {:?}, found {:?}",
-            SIG_LITTLE_ENDIAN,
-            SIG_BIG_ENDIAN,
+            self.signature.as_slice() == sig_bytes,
+            "Invalid GPT signature: expected {:X?} , found {:X?}",
+            sig_bytes,
             self.signature,
         );
 
@@ -103,6 +115,10 @@ impl GPTHeader {
             self.reserved, zeroed,
             "Invalid GPT reserved field: expected all zeros"
         );
+
+        // TODO: Check crc32 fields
+        // - crc32_header
+        // - crc32_partition_array
     }
 }
 
@@ -116,7 +132,8 @@ impl Debug for GPTHeader {
             .field("backup_lba", &self.backup_lba)
             .field("first_usable_lba", &self.first_usable_lba)
             .field("last_usable_lba", &self.last_usable_lba)
-            .field("disk_guid", &format_args!("{}", fmt_guid(&self.disk_guid)))
+            //.field("disk_guid", &format_args!("{}", fmt_guid(&self.disk_guid)))
+            .field("disk_guid", &self.disk_guid)
             .field(
                 "starting_lba_partition_entries",
                 &self.starting_lba_partition_entries,
@@ -133,15 +150,17 @@ impl Debug for GPTHeader {
 }
 
 /// fmt_guid formats a 16-byte GUID into the standard string representation
-fn fmt_guid(guid: &[u8; 16]) -> String {
-    let mut out = String::with_capacity(36);
-    for i in 0..16 {
-        if i == 4 || i == 6 || i == 8 || i == 10 {
-            out.push('-');
+impl Debug for Guid {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let guid = self.0;
+        for i in 0..16 {
+            if i == 4 || i == 6 || i == 8 || i == 10 {
+                f.write_char('-')?;
+            }
+            f.write_str(&format!("{:02X}", guid[i]))?;
         }
-        out.push_str(&format!("{:02X}", guid[i]));
+        Ok(())
     }
-    out
 }
 
 #[cfg(test)]
@@ -162,7 +181,8 @@ mod tests {
             ),
         ];
         for (case, expected) in cases {
-            let formatted = fmt_guid(&case);
+            let guid = Guid(case);
+            let formatted = format!("{guid:?}");
             assert_eq!(formatted, expected);
         }
     }

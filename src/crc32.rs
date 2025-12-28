@@ -6,7 +6,3 @@
 //!
 //! Its used to verify gpt partition table integrity.
 //!
-
-
-
-
