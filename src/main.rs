@@ -1,13 +1,14 @@
 mod crc32;
 mod filesystems;
 mod partition_tables;
+mod utils;
 
 use std::{
     fs::File,
     io::{Read, Seek},
 };
 
-use crate::partition_tables::{gpt::GPTHeader, msdos::MBR};
+use crate::partition_tables::{gpt::GPT, msdos::MBR};
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -48,7 +49,7 @@ fn main() {
         }
         Command::GPT { disk_path } => {
             println!("Reading GPT partition table from {}", disk_path);
-            let gpt = GPTHeader::read(&disk_path).expect("Failed to read GPT from disk");
+            let gpt = GPT::read(&disk_path).expect("Failed to read GPT from disk");
             println!("{:#?}", gpt);
         }
     }
