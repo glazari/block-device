@@ -126,3 +126,9 @@ sudo parted /dev/sda mkpart primary ext4 25% 50%
 sudo parted /dev/sda mkpart primary ntfs 50% 75%
 sudo parted /dev/sda mkpart primary linux-swap 75% 100%
 ```
+
+
+reading a GPT parition information
+```bash
+sudo sgdisk -p /dev/nvme0n1
+```
